@@ -31,11 +31,15 @@ node {
         bat "mkdir data"
         bat "move target\\hello*.jar data\\"
 
-        echo "Building Docker Image"
-
-        withEnv(['DOCKER_HOST=npipe:////./pipe/docker_engine']) {
-            bat "docker build -t ${dockerImageName} ."
-    }
+        echo "Pushing Docker Image to Repository"
+        script {
+            docker.withServer('npipe:////./pipe/docker_engine') {
+                docker.withRegistry("http://localhost:8083", "docker-registry-creds") {
+                    def image = docker.image("${dockerImageTag}")
+                    image.push()
+                }
+            }
+        }
     }
 
     stage('Push Docker Image') {
