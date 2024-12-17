@@ -11,15 +11,16 @@ node {
     }
 
     stage('Build Project') {
-        // Run Maven commands using Windows CMD
         bat "\"${mvnHome}\\bin\\mvn\" -Dmaven.test.failure.ignore clean package"
     }
 
-    stage('Publish Tests Results') {
+    stage('Publish Test Results') {
+        echo "Publishing JUnit test results"
         parallel(
-            publishJunitTestsResultsToJenkins: {
-                echo "Publishing JUnit test results"
+            publishJunitResults: {
                 junit '**/target/surefire-reports/TEST-*.xml'
+            },
+            archiveArtifactsStep: {
                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
         )
@@ -30,20 +31,25 @@ node {
         bat "mkdir data"
         bat "move target\\hello*.jar data\\"
 
-        echo "Building Docker Image using Docker Named Pipe"
-
-        // Explicitly set the Docker socket for Windows named pipe
-        docker.withServer('npipe:////./pipe/docker_engine') {
-            docker.build("${dockerImageName}")}
+        echo "Building Docker Image"
+        script {
+            docker.withServer('npipe:////./pipe/docker_engine') {
+                def image = docker.build("${dockerImageName}")
+                image.tag("${dockerImageTag}")
+            }
+        }
     }
 
-    stage('Deploy Docker Image') {
-        echo "Docker Image Tag Name: ${dockerImageTag}"
-
-        // Deploy Docker image to a repository
-        bat "docker login -u admin -p admin123 ${dockerRepoUrl}"
-        bat "docker tag ${dockerImageName} ${dockerImageTag}"
-        bat "docker push ${dockerImageTag}"
+    stage('Push Docker Image') {
+        echo "Pushing Docker Image to Repository"
+        script {
+            docker.withServer('npipe:////./pipe/docker_engine') {
+                docker.withRegistry("http://${dockerRepoUrl}", "admin:admin123") {
+                    def image = docker.image("${dockerImageTag}")
+                    image.push()
+                }
+            }
+        }
     }
 }
 
