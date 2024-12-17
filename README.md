@@ -2,6 +2,7 @@ Hello World sample shows how to deploy [SpringBoot](http://projects.spring.io/sp
 
 
 Simple edit
+Sample text
 #### Prerequisite 
 
 Installed:   
