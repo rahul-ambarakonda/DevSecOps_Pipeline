@@ -30,7 +30,13 @@ node {
         echo "Preparing JAR for Docker build"
         bat "mkdir data"
         bat "move target\\hello*.jar data\\"
+        echo "Building Docker Image"
+        withEnv(['DOCKER_HOST=npipe:////./pipe/docker_engine']) {
+            bat "docker build -t localhost:8083/hello-world-java:${env.BUILD_NUMBER} ."
+        }
+    }
 
+    stage('Push Docker Image') {
         echo "Pushing Docker Image to Repository"
         script {
             docker.withServer('npipe:////./pipe/docker_engine') {
@@ -41,17 +47,4 @@ node {
             }
         }
     }
-
-    stage('Push Docker Image') {
-        echo "Pushing Docker Image to Repository"
-        script {
-            docker.withServer('npipe:////./pipe/docker_engine') {
-                docker.withRegistry("http://${dockerRepoUrl}", "abkra:R@hul.279") {
-                    def image = docker.image("${dockerImageTag}")
-                    image.push()
-                }
-            }
-        }
-    }
-}
 
