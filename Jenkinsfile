@@ -32,12 +32,10 @@ node {
         bat "move target\\hello*.jar data\\"
 
         echo "Building Docker Image"
-        script {
-            docker.withServer('npipe:////./pipe/docker_engine') {
-                def image = docker.build("${dockerImageName}")
-                image.tag("${dockerImageTag}")
-            }
-        }
+
+        withEnv(['DOCKER_HOST=npipe:////./pipe/docker_engine']) {
+            bat "docker build -t ${dockerImageName} ."
+    }
     }
 
     stage('Push Docker Image') {
