@@ -34,7 +34,7 @@ node {
 
         // Explicitly set the Docker socket for Windows named pipe
         docker.withServer('npipe:////./pipe/docker_engine') {
-            docker.build("${dockerImageName}")
+            docker.build("${dockerImageName}")}
     }
 
     stage('Deploy Docker Image') {
