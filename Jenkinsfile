@@ -42,7 +42,7 @@ node {
         echo "Pushing Docker Image to Repository"
         script {
             docker.withServer('npipe:////./pipe/docker_engine') {
-                docker.withRegistry("http://${dockerRepoUrl}", "admin:admin123") {
+                docker.withRegistry("http://${dockerRepoUrl}", "abkra:R@hul.279") {
                     def image = docker.image("${dockerImageTag}")
                     image.push()
                 }
