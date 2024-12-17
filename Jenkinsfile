@@ -1,59 +1,53 @@
 node {
-    // reference to maven
-    // ** NOTE: This 'maven-3.6.1' Maven tool must be configured in the Jenkins Global Configuration.   
+    // Maven tool reference
     def mvnHome = tool 'maven-3.8.8'
 
-    // holds reference to docker image
-    def dockerImage
-    // ip address of the docker private repository(nexus)
-    
+    // Docker repository configuration
     def dockerRepoUrl = "localhost:8083"
     def dockerImageName = "hello-world-java"
     def dockerImageTag = "${dockerRepoUrl}/${dockerImageName}:${env.BUILD_NUMBER}"
     
-    stage('Clone Repo') { // for display purposes
-      // Get some code from a GitHub repository
-      git 'https://github.com/dstar55/docker-hello-world-spring-boot.git'
-      // Get the Maven tool.
-      // ** NOTE: This 'maven-3.6.1' Maven tool must be configured
-      // **       in the global configuration.           
-      mvnHome = tool 'maven-3.8.8'
+    def dockerImage
+
+    stage('Clone Repo') { 
+        // Clone the repository
+        git 'https://github.com/rahul-ambarakonda/DevSecOps_Pipeline.git'
+        mvnHome = tool 'maven-3.8.8'
     }    
-  
+
     stage('Build Project') {
-      // build project via maven
-      sh "'${mvnHome}/bin/mvn' -Dmaven.test.failure.ignore clean package"
+        // Build the project with Maven
+        sh "${mvnHome}/bin/mvn -Dmaven.test.failure.ignore clean package"
     }
-	
-	stage('Publish Tests Results'){
-      parallel(
-        publishJunitTestsResultsToJenkins: {
-          echo "Publish junit Tests Results"
-		  junit '**/target/surefire-reports/TEST-*.xml'
-		  archive 'target/*.jar'
-        },
-        publishJunitTestsResultsToSonar: {
-          echo "This is branch b"
-      })
+
+    stage('Publish Tests Results') {
+        parallel(
+            publishJunitTestsResultsToJenkins: {
+                echo "Publishing JUnit test results"
+                junit '**/target/surefire-reports/TEST-*.xml'
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            },
+            publishJunitTestsResultsToSonar: {
+                echo "This is branch B (Sonar Integration Stage - Add commands here)"
+            }
+        )
     }
-		
+
     stage('Build Docker Image') {
-      // build docker image
-      sh "whoami"
-      //sh "ls -all /var/run/docker.sock"
-      sh "mv ./target/hello*.jar ./data" 
-      
-      dockerImage = docker.build("hello-world-java")
+        // Prepare the jar file for Docker image build
+        sh "mkdir -p ./data"
+        sh "mv ./target/hello*.jar ./data"
+        
+        // Build Docker image
+        dockerImage = docker.build("${dockerImageTag}")
     }
-   
-    stage('Deploy Docker Image'){
-      
-      // deploy docker image to nexus
 
-      echo "Docker Image Tag Name: ${dockerImageTag}"
+    stage('Deploy Docker Image') {
+        echo "Docker Image Tag Name: ${dockerImageTag}"
 
-      sh "docker login -u admin -p admin123 ${dockerRepoUrl}"
-      sh "docker tag ${dockerImageName} ${dockerImageTag}"
-      sh "docker push ${dockerImageTag}"
+        // Push Docker image to Nexus repository
+        sh "docker login -u admin -p admin123 ${dockerRepoUrl}"
+        sh "docker push ${dockerImageTag}"
     }
 }
+
