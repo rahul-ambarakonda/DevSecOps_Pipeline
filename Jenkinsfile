@@ -1,23 +1,18 @@
 node {
-    // Maven tool reference
-    def mvnHome = tool 'maven-3.8.8'
+    // Reference the Maven tool
+    def mvnHome = tool name: 'maven-3.8.8', type: 'maven'
 
-    // Docker repository configuration
     def dockerRepoUrl = "localhost:8083"
     def dockerImageName = "hello-world-java"
     def dockerImageTag = "${dockerRepoUrl}/${dockerImageName}:${env.BUILD_NUMBER}"
-    
-    def dockerImage
 
     stage('Clone Repo') { 
-        // Clone the repository
         git branch: 'main', url: 'https://github.com/rahul-ambarakonda/DevSecOps_Pipeline.git'
-        mvnHome = tool 'maven-3.8.8'
-    }    
+    }
 
     stage('Build Project') {
-        // Build the project with Maven
-        sh "${mvnHome}/bin/mvn -Dmaven.test.failure.ignore clean package"
+        // Run Maven commands using Windows CMD
+        bat "\"${mvnHome}\\bin\\mvn\" -Dmaven.test.failure.ignore clean package"
     }
 
     stage('Publish Tests Results') {
@@ -26,28 +21,26 @@ node {
                 echo "Publishing JUnit test results"
                 junit '**/target/surefire-reports/TEST-*.xml'
                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-            },
-            publishJunitTestsResultsToSonar: {
-                echo "This is branch B (Sonar Integration Stage - Add commands here)"
             }
         )
     }
 
     stage('Build Docker Image') {
-        // Prepare the jar file for Docker image build
-        sh "mkdir -p ./data"
-        sh "mv ./target/hello*.jar ./data"
-        
-        // Build Docker image
-        dockerImage = docker.build("${dockerImageTag}")
+        echo "Preparing JAR for Docker build"
+        bat "mkdir data"
+        bat "move target\\hello*.jar data\\"
+
+        echo "Building Docker Image"
+        bat "docker build -t ${dockerImageName} ."
     }
 
     stage('Deploy Docker Image') {
         echo "Docker Image Tag Name: ${dockerImageTag}"
 
-        // Push Docker image to Nexus repository
-        sh "docker login -u admin -p admin123 ${dockerRepoUrl}"
-        sh "docker push ${dockerImageTag}"
+        // Deploy Docker image to a repository
+        bat "docker login -u admin -p admin123 ${dockerRepoUrl}"
+        bat "docker tag ${dockerImageName} ${dockerImageTag}"
+        bat "docker push ${dockerImageTag}"
     }
 }
 
