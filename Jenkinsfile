@@ -11,7 +11,7 @@ node {
 
     stage('Clone Repo') { 
         // Clone the repository
-        git 'https://github.com/rahul-ambarakonda/DevSecOps_Pipeline.git'
+        git branch: 'main', url: 'https://github.com/rahul-ambarakonda/DevSecOps_Pipeline.git'
         mvnHome = tool 'maven-3.8.8'
     }    
 
