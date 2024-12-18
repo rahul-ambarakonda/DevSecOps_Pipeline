@@ -20,12 +20,16 @@ pipeline {
             steps {
                 script {
                     def diff = readFile('diff_output.txt')
+		    // Extract PR information (assuming Jenkins GitHub plugin is used)
+                    def prLink = env.CHANGE_URL ?: "N/A"  // Jenkins provides this if PR triggers the build
                     emailext (
                         subject: "Pull Request Diff",
                         body: """
                         The following changes are part of this pull request:
 
                         ${diff}
+
+                        Review and approve the pull request here: ${prLink}
                         """,
                         to: 'rahul.ambarakonda.com'
                     )
